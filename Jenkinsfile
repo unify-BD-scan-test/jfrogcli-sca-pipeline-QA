@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     stages {
+
         stage('Security Scan') {
             steps {
                 echo 'Running gosec security scan...'
@@ -16,23 +17,15 @@ pipeline {
                     else
                         export PATH="$HOME/go/bin:$PATH"
                     fi
-
                     # Install gosec if not present
                     if ! command -v gosec >/dev/null 2>&1; then
                         go install github.com/securego/gosec/v2/cmd/gosec@latest
                         export PATH=$PATH:$(go env GOPATH)/bin
                     fi
-
-                    # Run gosec and output SARIF
-                    gosec -fmt sarif -out gosec-results.sarif ./...
+                    gosec -fmt sarif ./...
                 '''
             }
         }
-    }
 
-    post {
-        always {
-            archiveArtifacts artifacts: 'gosec-results.sarif', fingerprint: true
-        }
     }
 }
