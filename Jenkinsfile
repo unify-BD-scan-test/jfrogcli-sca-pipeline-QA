@@ -1,70 +1,38 @@
 pipeline {
     agent any
 
-    environment {
-        SARIF_FILE = "gitleaks-report.sarif"
-        GITLEAKS_BIN = "${WORKSPACE}/bin"
-        PATH = "${GITLEAKS_BIN}:${env.PATH}"
-    }
-
     stages {
-
-        stage('Install Gitleaks') {
+        stage('Security Scan') {
             steps {
+                echo 'Running gosec security scan...'
                 sh '''
-                    mkdir -p $GITLEAKS_BIN
-                    if ! [ -x "$GITLEAKS_BIN/gitleaks" ]; then
-                        echo "Installing gitleaks locally in $GITLEAKS_BIN ..."
-                        GITLEAKS_VERSION=8.18.1
-                        curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz \
-                        -o gitleaks.tar.gz
-                        tar -xzf gitleaks.tar.gz -C $GITLEAKS_BIN gitleaks
-                        chmod +x $GITLEAKS_BIN/gitleaks
+                    # Install Go if not present
+                    if ! command -v go >/dev/null 2>&1; then
+                        GO_VERSION=1.22.3
+                        curl -LO https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz
+                        mkdir -p "$HOME/go"
+                        tar -C "$HOME" -xzf go$GO_VERSION.linux-amd64.tar.gz
+                        export PATH="$HOME/go/bin:$PATH"
+                    else
+                        export PATH="$HOME/go/bin:$PATH"
                     fi
-                    gitleaks version
+
+                    # Install gosec if not present
+                    if ! command -v gosec >/dev/null 2>&1; then
+                        go install github.com/securego/gosec/v2/cmd/gosec@latest
+                        export PATH=$PATH:$(go env GOPATH)/bin
+                    fi
+
+                    # Run gosec and output SARIF
+                    gosec -fmt sarif -out gosec-results.sarif ./...
                 '''
             }
         }
+    }
 
-        stage('Prepare SARIF File') {
-            steps {
-                sh """
-                    if [ -f "${SARIF_FILE}" ]; then
-                        rm -f "${SARIF_FILE}"
-                    fi
-                """
-            }
-        }
-
-        stage('Run Gitleaks Scan') {
-            steps {
-                sh """
-                    ${GITLEAKS_BIN}/gitleaks detect \
-                    --source . \
-                    --report-format sarif \
-                    --report-path ${SARIF_FILE} || true
-                """
-            }
-        }
-
-        stage('Show SARIF Output') {
-            steps {
-                script {
-                    if (fileExists("${SARIF_FILE}")) {
-                        def sarifReport = readFile("${SARIF_FILE}")
-                        echo "===== Gitleaks SARIF Report ====="
-                        echo sarifReport
-                    } else {
-                        echo "No SARIF report found"
-                    }
-                }
-            }
-        }
-
-        stage('Archive SARIF Report') {
-            steps {
-                archiveArtifacts artifacts: "${SARIF_FILE}", fingerprint: true
-            }
+    post {
+        always {
+            archiveArtifacts artifacts: 'gosec-results.sarif', fingerprint: true
         }
     }
-} 
+}
