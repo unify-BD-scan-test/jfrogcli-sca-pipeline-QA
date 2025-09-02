@@ -25,7 +25,7 @@ pipeline {
     stage('Configure JFrog CLI') {
       steps {
         withCredentials([usernamePassword(
-          credentialsId: 'jfrog-cred',
+          credentialsId: 'jfrog-cli-credentials',
           usernameVariable: 'JF_USER',
           passwordVariable: 'JF_PASS'
         )]) {
