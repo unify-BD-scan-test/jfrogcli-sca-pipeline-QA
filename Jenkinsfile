@@ -43,25 +43,6 @@ pipeline {
       }
     }
 
-    stage('Install Go and NPM') {
-      steps {
-        sh '''
-          echo "Installing dependencies..."
-
-          apt-get update
-          apt-get install -y wget curl tar gnupg lsb-release build-essential
-
-          # Install Go
-          wget https://go.dev/dl/go1.21.1.linux-amd64.tar.gz
-          tar -C /usr/local -xzf go1.21.1.linux-amd64.tar.gz
-          export PATH=$PATH:/usr/local/go/bin
-
-          # Install Node.js + npm
-          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-          apt-get install -y nodejs
-        '''
-      }
-    }
     stage('Debug Directory Contents') {
       steps {
         sh '''
