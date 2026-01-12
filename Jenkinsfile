@@ -7,6 +7,10 @@ pipeline {
     SCA_PROJECT_DIR = "${env.WORKSPACE}/test-workflow-ninja"
   }
 
+  triggers {
+        cron '15 23 * * 1-5' // Runs at 23:15 on every day-of-week from Monday through Friday
+         }
+
   stages {
     stage('Install JFrog CLI') {
       steps {
