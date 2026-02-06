@@ -71,6 +71,16 @@ pipeline {
         }
       }
     }
+    stage('Security Scan') {
+            steps {
+                registerSecurityScan(
+                    // Security Scan to include
+                    artifacts: "jfrog-sarif-sca-results.sarif",
+                    format: "sarif",
+                    archive: true
+                )
+            }
+        }
 
     stage('Display SARIF Output') {
       steps {
@@ -79,9 +89,9 @@ pipeline {
     }
   }
 
-  post {
-    always {
-      archiveArtifacts artifacts: 'jfrog-sarif-sca-results.sarif', fingerprint: true
-    }
-  }
+  // post {
+  //   always {
+  //     archiveArtifacts artifacts: 'jfrog-sarif-sca-results.sarif', fingerprint: true
+  //   }
+  // }
 }
